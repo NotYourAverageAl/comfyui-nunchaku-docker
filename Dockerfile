@@ -15,26 +15,30 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 
 ENV PATH="/opt/conda/bin:$PATH"
 
-# Create Conda Environment
-RUN conda create -n comfy python=3.12 -y
+# FIX: Accept Conda ToS and Create Environment
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
+    conda create -n comfy python=3.12 -y
+
+# Use the environment for subsequent steps
 SHELL ["conda", "run", "-n", "comfy", "/bin/bash", "-c"]
 
-# Install PyTorch (Late 2025 Stable: Torch 2.5.x or 2.6.x)
+# Install PyTorch
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # Set up ComfyUI and Custom Nodes
 WORKDIR /opt
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git
 
-# Clone Custom Nodes
+# Clone Custom Nodes (Manager + Nunchaku + Sage Source)
 RUN git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager.git ComfyUI/custom_nodes/ComfyUI-Manager && \
     git clone --depth 1 https://github.com/nunchaku-tech/ComfyUI-nunchaku.git ComfyUI/custom_nodes/ComfyUI-nunchaku && \
     git clone --depth 1 https://github.com/thu-ml/SageAttention.git
 
-# Install Nunchaku (latest from pip)
+# Install Nunchaku (latest stable)
 RUN pip install nunchaku --extra-index-url https://download.pytorch.org/whl/cu124
 
-# Install All Requirements
+# Install Requirements
 RUN pip install -r ComfyUI/requirements.txt && \
     pip install -r ComfyUI/custom_nodes/ComfyUI-Manager/requirements.txt && \
     pip install -r ComfyUI/custom_nodes/ComfyUI-nunchaku/requirements.txt && \
@@ -54,7 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 libglib2.0-0 ffmpeg curl git vim && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy Conda environment and ComfyUI (with nodes) from builder
+# Copy Conda environment and ComfyUI from builder
 COPY --from=builder /opt/conda /opt/conda
 COPY --from=builder /opt/ComfyUI /workspace/ComfyUI
 
@@ -67,5 +71,4 @@ COPY start.sh .
 RUN chmod +x /workspace/start.sh
 
 EXPOSE 8188
-# Using the shell form to ensure environment variables are inherited correctly
 CMD ["/workspace/start.sh"]
