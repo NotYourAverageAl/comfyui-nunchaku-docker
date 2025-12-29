@@ -46,7 +46,7 @@ RUN pip install -r ComfyUI/requirements.txt && \
 
 # Compile SageAttention
 WORKDIR /opt/SageAttention
-RUN export EXT_PARALLEL=4 NVCC_APPEND_FLAGS="--threads 8" MAX_JOBS=4 TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0" && \
+RUN export EXT_PARALLEL=1 NVCC_APPEND_FLAGS="--threads 1" MAX_JOBS=1 TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0" && \
     pip install . --no-build-isolation
 
 # ==========================================
